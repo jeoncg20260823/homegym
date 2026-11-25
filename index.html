@@ -725,6 +725,7 @@ function unlock(){try{if(WL){WL.release();WL=null}}catch(e){}}
 
 /* ---------- 화면: 공통 ---------- */
 var ICON={
+ backup:'<svg viewBox="0 0 24 24"><path d="M12 4v11M7 11l5 5 5-5M5 20h14"/></svg>',
  exit:'<svg viewBox="0 0 24 24"><path d="M12 3v9M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>',
  today:'<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
  lib:'<svg viewBox="0 0 24 24"><path d="M3 9v6M6 6.5v11M18 6.5v11M21 9v6M6 12h12"/></svg>',
@@ -733,7 +734,7 @@ var ICON={
 };
 function tabbar(){
   var t=[['today','오늘'],['lib','운동'],['stats','기록'],['set','설정']];
-  return '<nav class="tabs"><div>'+t.map(function(x){return '<button class="tab'+(ui.tab===x[0]?' on':'')+'" data-a="tab" data-v="'+x[0]+'" aria-label="'+x[1]+'">'+ICON[x[0]]+x[1]+'</button>'}).join('')+'<button class="tab" data-a="exit" aria-label="종료">'+ICON.exit+'종료</button></div></nav>';
+  return '<nav class="tabs"><div>'+t.map(function(x){return '<button class="tab'+(ui.tab===x[0]?' on':'')+'" data-a="tab" data-v="'+x[0]+'" aria-label="'+x[1]+'">'+ICON[x[0]]+x[1]+'</button>'}).join('')+'<button class="tab" data-a="bkquick" aria-label="백업">'+ICON.backup+'백업</button></div></nav>';
 }
 function fmtDate(d){return (d.getMonth()+1)+'월 '+d.getDate()+'일 '+WDN[d.getDay()]+'요일'}
 function setLine(it,ex){return it.sets+'세트 × '+it.target+unit(ex)}
@@ -852,6 +853,7 @@ function todayView(){
   h+='<div class="sec"><h3>주간 루틴</h3><section class="card" style="padding-block:4px">'+S.plan.days.map(function(d){
     return '<div class="dayrow"><span class="d">'+WDN[d.wd]+'</span><div class="grow"><b>'+d.title+'</b><small>'+d.items.map(function(it){return EXM[it.id].name}).join(' · ')+'</small></div><button class="btn sm soft" data-a="start" data-v="'+d.wd+'">시작</button></div>';
   }).join('')+'</section></div>';
+  h+='<p class="note" style="text-align:center;margin-top:18px">앱을 끝내려면 이 홈 화면에서 폰의 뒤로 버튼을 누르세요.</p>';
   return h;
 }
 function nextDay(){
@@ -957,8 +959,9 @@ function syncCard(){
 }
 
 /* ---------- 버전 · 공지사항 ---------- */
-var APP_VERSION='1.7.2';
+var APP_VERSION='1.8.0';
 var RELEASES=[
+ {v:'1.8.0',d:'2026-11-25',t:'백업 탭과 종료 방법',n:['하단 종료 버튼이 백업 버튼으로 바뀌었어요.','앱을 열 때 백업 안내가 다시 나와요.','앱을 끝내려면 홈 화면에서 폰의 뒤로 버튼을 누르세요.']},
  {v:'1.7.2',d:'2026-11-25',t:'돌아가기·나가기',n:['종료에서 마치기를 누르면 돌아가기 또는 나가기를 고를 수 있어요.']},
  {v:'1.7.1',d:'2026-11-25',t:'바로 종료',n:['종료를 고르면 앱이 바로 닫혀요. 닫히지 않는 환경에서는 종료 안내 화면이 나와요.']},
  {v:'1.7.0',d:'2026-11-25',t:'종료 탭 추가',n:['하단 설정 옆에 종료 버튼이 생겼어요. 누르면 백업하고 마칠지, 그냥 마칠지 고를 수 있어요.','홈 화면에서 폰의 뒤로 버튼을 눌러도 같은 종료 선택창이 떠요.']},
@@ -1094,7 +1097,7 @@ function bkHTML(){
     return h+'<button class="btn" data-a="bkclose">확인</button></div></div>';
   }
   if(ui.exiting){var hasL=realLogs().length>0;h+='<div class="eyebrow">종료</div><h2 id="bktitle" style="margin:2px 0 8px">종료할까요?</h2><p class="note" style="color:var(--ink);margin-bottom:6px">'+(!hasL?'아직 저장할 운동 기록이 없어요.':backupDirty()?(S.settings.lastBackup?'마지막 백업('+bkTime(S.settings.lastBackup)+') 이후 기록이 추가되거나 바뀌었어요.':'아직 백업한 적이 없어요.'):'마지막 백업 이후 바뀐 기록은 없어요.')+'</p>'+(hasL?'<p class="note" style="margin-bottom:14px">백업 파일(JSON)을 저장해 두면 브라우저 데이터를 지우거나 폰을 바꿔도 기록을 되살릴 수 있어요.</p>':'<div style="height:8px"></div>');return h+'<div class="col" style="display:flex;flex-direction:column;gap:8px">'+(hasL?'<button class="btn" data-a="bkdo">백업하고 마치기</button>':'')+'<button class="btn '+(hasL?'ghost':'')+'" data-a="byenow">'+(hasL?'백업 없이 마치기':'마치기')+'</button><button class="btn soft" data-a="bkcancel">취소</button></div></div></div>'}
-  h+='<div class="eyebrow">백업 안내</div><h2 id="bktitle" style="margin:2px 0 8px">'+(ui.exiting?'종료하기 전에 백업할까요?':'나가기 전에 백업할까요?')+'</h2><p class="note" style="color:var(--ink);margin-bottom:6px">'+(S.settings.lastBackup?'마지막 백업('+bkTime(S.settings.lastBackup)+') 이후 기록이 추가되거나 바뀌었어요.':'아직 백업한 적이 없어요.')+'</p><p class="note" style="margin-bottom:14px">백업 파일(JSON)을 저장해 두면 브라우저 데이터를 지우거나 폰을 바꿔도 기록을 되살릴 수 있어요.</p>';
+  h+='<div class="eyebrow">백업 안내</div><h2 id="bktitle" style="margin:2px 0 8px">백업할까요?</h2><p class="note" style="color:var(--ink);margin-bottom:6px">'+(S.settings.lastBackup?'마지막 백업('+bkTime(S.settings.lastBackup)+') 이후 기록이 추가되거나 바뀌었어요.':'아직 백업한 적이 없어요.')+'</p><p class="note" style="margin-bottom:14px">백업 파일(JSON)을 저장해 두면 브라우저 데이터를 지우거나 폰을 바꿔도 기록을 되살릴 수 있어요.</p>';
   return h+'<div class="col" style="display:flex;flex-direction:column;gap:8px"><button class="btn" data-a="bkdo">지금 백업 저장</button>'+(ui.exiting?'<button class="btn ghost" data-a="byenow">백업 없이 종료</button><button class="btn soft" data-a="bkcancel">취소</button>':'<button class="btn ghost" data-a="bklater">나중에</button>')+'</div></div></div>';
 }
 function byeHTML(){return ui.bye?'<div class="nbk" style="align-items:center;z-index:50;background:var(--bg)" role="dialog" aria-modal="true"><div style="text-align:center;padding:24px;max-width:340px;width:100%;display:flex;flex-direction:column;gap:12px"><h2>수고하셨어요</h2><p class="note" style="color:var(--ink)">앱으로 돌아갈까요, 나갈까요?</p><button class="btn" data-a="byeexit">나가기</button><button class="btn ghost" data-a="byeback">돌아가기</button>'+(ui.byeNote?'<p class="note">이 화면에서는 앱이 스스로 닫히지 않아요. 폰의 홈 버튼이나 최근 앱 화면에서 닫아 주세요.</p>':'')+'</div></div>':''}
@@ -1318,11 +1321,11 @@ function act(a,v,k){
       setTimeout(function(){ui.saveMsg='';if(DEV.cur&&ui.tab==='set'&&!ui.run)renderMain()},2200)}
     break;
   case 'setcancel':ui.draft=null;renderMain();break;
-  case 'noticeok':writeSeen(APP_VERSION);ui.notice=null;ui.noticeAll=false;renderLayer();break;
+  case 'noticeok':writeSeen(APP_VERSION);ui.notice=null;ui.noticeAll=false;renderLayer();askBackup();break;
   case 'bkdo':exportJSON();if(!realLogs().length)ui.bk=null;renderLayer();break;
   case 'bklater':ui.bk=null;ui.bdismiss=true;renderLayer();break;
   case 'bkclose':if(ui.exiting){ui.bk=null;ui.exiting=false;ui.bye=true;ui.byeNote=false;renderLayer();break}ui.bk=null;renderLayer();renderMain();break;
-  case 'exit':startExit();break;
+  case 'bkquick':if(!realLogs().length){ui.bk={result:'백업할 운동 기록이 아직 없어요.',ok:false}}else{ui.bk={};exportJSON();break}renderLayer();break;
   case 'lockgo':lockTry();break;
   case 'lockforgot':ui.lockUi={forgot:true};renderMain();break;
   case 'lockback':ui.lockUi=null;renderMain();break;
@@ -1333,7 +1336,7 @@ function act(a,v,k){
   case 'byenow':ui.bk=null;ui.exiting=false;ui.bye=true;ui.byeNote=false;renderLayer();break;
   case 'byeexit':doExit();break;
   case 'bkcancel':ui.bk=null;ui.exiting=false;renderLayer();break;
-  case 'byeback':ui.bye=false;ui.leaving=false;ui.byeNote=false;pushGuard();renderLayer();break;
+  case 'byeback':ui.bye=false;ui.leaving=false;ui.byeNote=false;renderLayer();break;
   case 'noticeall':ui.notice=RELEASES.slice(0,5);ui.noticeAll=true;renderLayer();break;
   case 'syncnow':pushSync();break;
   case 'exjson':exportJSON();break;
@@ -1403,7 +1406,7 @@ async function doDownload(name,text,isJson){
   try{
     var d=window.claude&&window.claude.use?await window.claude.use('downloads'):null;
     if(d){await d.save({filename:name,data:text});done=true;ui.msg='파일을 저장했어요.'}
-  }catch(e){if(e&&e.code==='declined'){ui.msg='저장을 취소했어요.';renderMain();return}}
+  }catch(e){if(e&&e.code==='declined'){ui.msg='저장을 취소했어요.';ui.bk=null;renderLayer();renderMain();return}}
   if(!done){
     try{var bl=new Blob([text],{type:'text/plain;charset=utf-8'}),url=URL.createObjectURL(bl),an=document.createElement('a');an.href=url;an.download=name;an.rel='noopener';document.body.appendChild(an);an.click();setTimeout(function(){an.remove();URL.revokeObjectURL(url)},1500)}catch(e){}
     ui.copy={name:name,text:text};ui.msg=isJson?'파일 저장이 확인되지 않았어요. 아래 내용을 전체 복사해서 메모 앱이나 메일에 보관하면 백업이 끝나요. 복사하기 전에는 "마지막 백업"으로 기록하지 않아요.':'파일 저장이 확인되지 않았어요. 저장되지 않았다면 아래 내용을 복사해서 보관하세요.';
@@ -1504,30 +1507,38 @@ document.addEventListener('visibilitychange',function(){
   else{if(ui.run&&!ui.run.done)lock();ui.bkPending=false;if(lockOn()&&!ui.locked&&!ui.run&&ui.hiddenAt&&Date.now()-ui.hiddenAt>60000){ui.locked=true;ui.lockUi=null;ui.sheet=null;ui.bk=null;renderAll()}}
 });
 
-/* 폰의 뒤로가기: 열린 화면부터 닫고, 마지막에는 홈 화면으로 돌아와요 */
-var GUARD=false;
-function pushGuard(){if(GUARD)return;try{history.pushState({hg:1},'');GUARD=true}catch(e){}}
+/* 폰의 뒤로가기: 열린 화면이 있으면 닫고 홈으로 돌아와요. 홈 화면에서는 브라우저 기본 동작(앱 종료)에 맡겨요 */
+var GUARD=false,IGNORE=false;
 function clickA(a){var el=document.querySelector('[data-a="'+a+'"]');if(el){el.click();return true}return false}
+function needGuard(){
+  if(!DEV.cur||!S.profile)return false;
+  if(ui.locked&&lockOn())return !!(ui.lockUi&&ui.lockUi.forgot);
+  return !!(ui.tab!=='today'||ui.run||ui.sheet||ui.bk||ui.notice||ui.ob);
+}
+function syncGuard(){
+  var n=needGuard();
+  if(n&&!GUARD){try{history.pushState({hg:1},'');GUARD=true}catch(e){}}
+  else if(!n&&GUARD){GUARD=false;IGNORE=true;try{history.back()}catch(e){IGNORE=false}}
+}
 function backHandled(){
-  if(ui.leaving)return 'exit';
   if(ui.locked&&lockOn()){if(ui.lockUi&&ui.lockUi.forgot){clickA('lockback');return true}return false}
-  if(ui.bye){ui.bye=false;ui.byeNote=false;renderLayer();return true}
   if(ui.notice){return true}
-  if(ui.bk){if(ui.bk.result)clickA('bkclose');else if(ui.exiting)clickA('bkcancel');else clickA('bklater');return true}
+  if(ui.bk){if(ui.bk.result)clickA('bkclose');else clickA('bklater');return true}
   if(ui.run){var r=ui.run;if(r.done){clickA('runClose')}else if(r.confirm){clickA('qcancel')}else{clickA('quit')}return true}
   if(ui.sheet){ui.sheet=null;renderLayer();return true}
   if(ui.ob){if(ui.ob.step>0){ui.ob.step--;renderMain();return true}if(S.profile){ui.ob=null;renderMain();return true}return false}
   if(!DEV.cur)return false;
   if(ui.tab!=='today'){ui.draft=null;ui.tab='today';ui.msg='';window.scrollTo(0,0);renderMain();return true}
-  startExit();return true;
+  return false;
 }
 window.addEventListener('popstate',function(){
-  GUARD=false;var h=backHandled();
-  if(h==='exit'){try{history.back()}catch(e){}return}
-  if(h)pushGuard();
+  if(IGNORE){IGNORE=false;return}
+  GUARD=false;backHandled();syncGuard();
 });
-['click','touchend'].forEach(function(t){document.addEventListener(t,pushGuard,{passive:true})});
+['click','touchend'].forEach(function(t){document.addEventListener(t,syncGuard,{passive:true})});
+(function(){var rm=renderMain,rl=renderLayer;renderMain=function(){rm.apply(this,arguments);syncGuard()};renderLayer=function(){rl.apply(this,arguments);syncGuard()}})();
 window.addEventListener('beforeunload',function(e){if(backupDirty()&&!ui.bdismiss){e.preventDefault();e.returnValue=''}});
+setTimeout(askBackup,900);
 requestAnimationFrame(loop);
 initDb();
 setTimeout(function(){if(!DEV.ready){DEV.ready=true;if(!DEV.cur)renderMain()}},4000);
