@@ -616,13 +616,16 @@ function poolFor(lv,pain){
   var rest=all.filter(function(e){return conflicts(e,pain).length}).sort(function(a,b){return conflicts(a,pain).length-conflicts(b,pain).length});
   return safe.concat(rest.slice(0,4-safe.length));
 }
+function fl(x){var a=Array.isArray(x)?x:(x?[x]:[]);a=a.filter(function(g){return GN[g]});return (!a.length||a.indexOf('full')>=0)?['full']:a}
+function focusLabel(p){var a=fl(p&&p.focus);return a[0]==='full'?'전신':a.map(function(g){return GN[g]}).join('·')}
 function pickDay(kind,lv,focus,n,r,pain){
+  focus=fl(focus);var fall=focus[0]==='full';
   var pool=poolFor(lv,pain),gs=SPLITG[kind],out=[];
   function add(e){if(e&&out.indexOf(e)<0)out.push(e)}
   var main=pool.filter(function(e){return gs.indexOf(e.g)>=0});
   if(kind==='mix'){
-    if(focus!=='full'){
-      var f=rot(pool.filter(function(e){return e.g===focus}),r),o=rot(pool.filter(function(e){return e.g!==focus}),r),nf=Math.min(f.length,Math.ceil(n/2));
+    if(!fall){
+      var f=rot(pool.filter(function(e){return focus.indexOf(e.g)>=0}),r),o=rot(pool.filter(function(e){return focus.indexOf(e.g)<0}),r),nf=Math.min(f.length,Math.ceil(n/2));
       f.slice(0,nf).forEach(add);o.forEach(add);
     }else{
       var by=gs.map(function(g){return rot(pool.filter(function(e){return e.g===g}),r)});
@@ -630,7 +633,7 @@ function pickDay(kind,lv,focus,n,r,pain){
     }
   }else{
     rot(main,r).forEach(add);
-    if(focus!=='full'&&gs.indexOf(focus)<0)add(rot(pool.filter(function(e){return e.g===focus}),r)[0]);
+    if(!fall)focus.forEach(function(g){if(gs.indexOf(g)<0)add(rot(pool.filter(function(e){return e.g===g}),r)[0])});
   }
   ['core','upper','lower','full'].forEach(function(g){rot(pool.filter(function(e){return e.g===g}),r).forEach(function(e){if(out.length<Math.min(n,5))add(e)})});
   return out.slice(0,n);
@@ -643,7 +646,7 @@ function makePlan(p){
   var sets=Math.max(2,Math.min(Math.min(p.level===1?4:5,adj(p).cap),Math.round(total/n)));
   var days=SPLIT[p.days].map(function(kind,i){
     var light=p.days===7&&i===6,k=light?'mix':kind,s2=light?Math.max(2,sets-1):sets;
-    var items=pickDay(k,p.level,light?'full':p.focus,n,i,pain).map(function(e){return {id:e.id,sets:s2,target:tgt(e,p,p.level)}});
+    var items=pickDay(k,p.level,light?['full']:fl(p.focus),n,i,pain).map(function(e){return {id:e.id,sets:s2,target:tgt(e,p,p.level)}});
     return {wd:WDSET[p.days][i],kind:kind,light:light,title:light?'가벼운 전신 · 회복':SPLITT[kind],items:items};
   });
   return {days:days};
@@ -954,8 +957,9 @@ function syncCard(){
 }
 
 /* ---------- 버전 · 공지사항 ---------- */
-var APP_VERSION='1.5.0';
+var APP_VERSION='1.6.0';
 var RELEASES=[
+ {v:'1.6.0',d:'2026-11-25',t:'부위 복수 선택',n:['키우고 싶은 부위를 여러 개 고를 수 있어요. 이미 만든 루틴은 설정에서 질문 다시 하기를 하면 바뀌어요.']},
  {v:'1.5.0',d:'2026-11-25',t:'앱 잠금 추가',n:['설정에서 앱 잠금(PIN)을 켤 수 있어요. 기본은 꺼져 있어요.']},
  {v:'1.4.0',d:'2026-11-25',t:'사용 방법 추가',n:['설정에 사용 방법 안내가 생겼어요.']},
  {v:'1.3.0',d:'2026-11-25',t:'종료 버튼과 뒤로가기',n:['홈 화면 아래에 종료하기 버튼이 생겼고, 누르면 백업 안내가 떠요.','폰의 뒤로 버튼을 누르면 홈 화면으로 돌아와요.']},
@@ -1052,7 +1056,7 @@ function aboutSection(){
 function foot(){return '<footer class="foot">© '+new Date().getFullYear()+' C.G.Jeon · All rights reserved. · v'+APP_VERSION+'<br>화면·그림·루틴 구성은 저작권법의 보호를 받아요.<br>운동 정보는 일반적인 가이드이며 의학적 조언이 아니에요.</footer>'}
 function setView(){
   var p=S.profile,h='<header class="top"><div class="eyebrow">내 루틴 기준</div><h1>설정</h1></header>';
-  h+='<section class="card hero"><div class="row"><h2>'+LVN[p.level-1]+' · '+daysLabel(p.days)+'</h2><span class="chip">'+GN[p.focus]+' 집중</span></div><p class="meta">1회 약 '+p.minutes+'분 · 장비 없이 맨몸으로 해요.</p>'+adjNote(p)+'<button class="btn ghost" data-a="redo">질문 다시 하고 루틴 새로 만들기</button></section>';
+  h+='<section class="card hero"><div class="row"><h2>'+LVN[p.level-1]+' · '+daysLabel(p.days)+'</h2><span class="chip">'+focusLabel(p)+' 집중</span></div><p class="meta">1회 약 '+p.minutes+'분 · 장비 없이 맨몸으로 해요.</p>'+adjNote(p)+'<button class="btn ghost" data-a="redo">질문 다시 하고 루틴 새로 만들기</button></section>';
   h+=userSection();
   h+='<div class="sec"><h3>아픈 곳</h3><section class="card hero"><p class="note">고른 부위에 부담이 되는 동작은 루틴에서 빼요. 고른 뒤 아래 저장을 누르면 루틴이 다시 만들어져요.</p><div class="pills">'+PAINL.map(function(x){return '<button class="pill pain'+(dpains().indexOf(x[0])>=0?' on':'')+'" data-a="setpain" data-v="'+x[0]+'">'+x[1]+'</button>'}).join('')+'</div><p class="note">진단이 아니에요. 통증이 심하거나 오래가면 운동 전에 의사와 상담하세요.</p></section></div>';
   h+='<div class="sec"><h3>운동 방식</h3><section class="card hero"><div><b>세트당 운동 시간</b><p class="note">반복 운동의 제한 시간이에요. 먼저 끝나면 바로 완료를 누르세요.</p></div><div class="seg">'+[30,40,50].map(function(s){return '<button class="'+(dwork()===s?'on':'')+'" data-a="setwork" data-v="'+s+'">'+s+'초</button>'}).join('')+'</div><div class="row"><div><b>소리 · 진동 알림</b><p class="note">전환 3초 전부터 알려줘요.</p></div><button class="pill'+(S.settings.sound?' on':'')+'" data-a="sound">'+(S.settings.sound?'켜짐':'꺼짐')+'</button></div></section></div>';
@@ -1103,7 +1107,7 @@ var STEPS=[
  {k:'level',t:'지금 운동 수준은 어느 정도인가요?',o:[[1,'초급','운동을 처음 하거나 오래 쉬었어요'],[2,'중급','푸시업 10개 정도 가능하고 주 2~3회 운동해요'],[3,'고급','푸시업 20개 이상, 꾸준히 운동해 왔어요']]},
  {k:'days',t:'일주일에 며칠 운동할 수 있나요?',g2:1,o:[[2,'주 2일','가볍게 시작'],[3,'주 3일','가장 무난한 빈도'],[4,'주 4일','부위를 나눠서'],[5,'주 5일','적극적으로'],[6,'주 6일','하루만 쉬어요'],[7,'매일','마지막 날은 가벼운 회복일']]},
  {k:'minutes',t:'한 번에 얼마나 운동할까요?',g2:1,o:[[15,'15분','짧고 굵게'],[25,'25분','바쁜 날에도'],[40,'40분','충분한 볼륨'],[60,'60분','여유 있게']]},
- {k:'focus',t:'가장 키우고 싶은 부위는요?',g2:1,o:[['upper','상체','가슴 · 어깨 · 팔 · 등'],['lower','하체','허벅지 · 엉덩이'],['core','코어','복부 · 허리'],['full','전신','균형 있게']]},
+ {k:'focus',t:'키우고 싶은 부위는요?',fmulti:1,sub:'여러 개를 골라도 돼요. 고른 부위를 더 많이 넣어 루틴을 만들어요.',g2:1,o:[['upper','상체','가슴 · 어깨 · 팔 · 등'],['lower','하체','허벅지 · 엉덩이'],['core','코어','복부 · 허리'],['full','전신','균형 있게']]},
  {k:'pain',t:'아픈 곳이 있나요?',multi:1,sub:'해당하는 곳을 모두 골라 주세요. 그 부위에 부담이 되는 동작은 루틴에서 빼요.',o:PAINL}
 ];
 function onboardView(){
@@ -1112,6 +1116,9 @@ function onboardView(){
   if(s.input){
     var by=new Date().getFullYear();
     h+='<label class="note" for="byear">출생연도 (4자리)</label><input id="byear" class="field" type="text" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="예: 1985" value="'+(o.birth||'')+'"><p class="note" id="bnote" style="margin-top:8px">'+(o.birth?(by-o.birth)+'세 기준으로 맞춰요.':'1920~'+(by-10)+' 사이로 입력해 주세요.')+'</p>';
+  }else if(s.fmulti){
+    var fs=Array.isArray(o.focus)?o.focus:(o.focus?[o.focus]:[]);
+    h+='<div class="opts g2">'+s.o.filter(function(x){return x[0]!=='full'}).map(function(x){return '<button class="opt'+(fs.indexOf(x[0])>=0?' on':'')+'" data-a="obf" data-v="'+x[0]+'"><b>'+x[1]+'</b><span>'+x[2]+'</span></button>'}).join('')+'<button class="opt'+(fs.indexOf('full')>=0?' on':'')+'" style="grid-column:1/-1" data-a="obf" data-v="full"><b>전신</b><span>균형 있게 (다른 부위 선택은 해제돼요)</span></button></div>';
   }else if(s.multi){
     var pn=o.pain||[];
     h+='<div class="opts g2">'+s.o.map(function(x){return '<button class="opt'+(pn.indexOf(x[0])>=0?' on':'')+'" data-a="obp" data-v="'+x[0]+'"><b>'+x[1]+'</b><span>'+x[2]+'</span></button>'}).join('')+'<button class="opt'+(!pn.length?' on':'')+'" style="grid-column:1/-1" data-a="obp" data-v="none"><b>아픈 곳 없어요</b><span>모든 동작을 포함해요</span></button></div><p class="note" style="margin-top:12px">진단이 아니에요. 통증이 심하거나 오래가면 운동 전에 의사와 상담하세요.</p>';
@@ -1119,7 +1126,7 @@ function onboardView(){
     h+='<div class="opts'+(s.g2?' g2':'')+'">'+s.o.map(function(x){return '<button class="opt'+(o[s.k]===x[0]?' on':'')+'" data-a="obc" data-k="'+s.k+'" data-v="'+x[0]+'"><b>'+x[1]+'</b><span>'+x[2]+'</span></button>'}).join('')+'</div>';
   }
   var last=o.step===STEPS.length-1;
-  h+='<div class="row" style="margin-top:22px;gap:10px">'+(o.step>0?'<button class="btn ghost" style="flex:1" data-a="obb">이전</button>':(S.profile?'<button class="btn ghost" style="flex:1" data-a="obx">취소</button>':''))+'<button class="btn" style="flex:2" data-a="obn"'+(!s.multi&&o[s.k]==null?' disabled':'')+'>'+(last?'루틴 만들기':'다음')+'</button></div></div>';
+  h+='<div class="row" style="margin-top:22px;gap:10px">'+(o.step>0?'<button class="btn ghost" style="flex:1" data-a="obb">이전</button>':(S.profile?'<button class="btn ghost" style="flex:1" data-a="obx">취소</button>':''))+'<button class="btn" style="flex:2" data-a="obn"'+((s.fmulti?!(Array.isArray(o.focus)?o.focus:(o.focus?[o.focus]:[])).length:(!s.multi&&o[s.k]==null))?' disabled':'')+'>'+(last?'루틴 만들기':'다음')+'</button></div></div>';
   return h;
 }
 
@@ -1359,12 +1366,13 @@ function act(a,v,k){
     wipeRemote().then(function(){S=def();SYNC.dirty={};SYNC.stateDirty=false;try{localStorage.removeItem(KEY)}catch(e){}ui.reset=0;ui.tab='today';ui.ob=null;ui.msg='';renderAll()});break;
   case 'redo':ui.ob=Object.assign({step:0},S.profile,{pain:(S.profile.pain||[]).slice()});renderMain();break;
   case 'obc':ui.ob[k]=(k==='focus'||k==='sex')?v:+v;renderMain();break;
+  case 'obf':var fo=Array.isArray(ui.ob.focus)?ui.ob.focus.slice():(ui.ob.focus?[ui.ob.focus]:[]);if(v==='full')fo=fo.indexOf('full')>=0?[]:['full'];else{fo=fo.filter(function(g){return g!=='full'});var xi=fo.indexOf(v);if(xi>=0)fo.splice(xi,1);else fo.push(v)}ui.ob.focus=fo;renderMain();break;
   case 'obb':ui.ob.step=Math.max(0,ui.ob.step-1);renderMain();break;
   case 'obx':ui.ob=null;renderMain();break;
   case 'obn':
     if(ui.ob.step<STEPS.length-1){ui.ob.step++;renderMain()}
     else{
-      var o=ui.ob;S.profile={sex:o.sex||null,birth:o.birth||null,level:o.level,days:o.days,minutes:o.minutes,focus:o.focus,pain:(o.pain||[]).slice()};S.plan=makePlan(S.profile);save();
+      var o=ui.ob;S.profile={sex:o.sex||null,birth:o.birth||null,level:o.level,days:o.days,minutes:o.minutes,focus:fl(o.focus),pain:(o.pain||[]).slice()};S.plan=makePlan(S.profile);save();
       ui.ob=null;ui.tab='today';window.scrollTo(0,0);renderAll();
     }
     break;
