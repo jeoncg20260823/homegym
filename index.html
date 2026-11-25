@@ -101,7 +101,7 @@ button:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .stat .l{font-size:12px;color:var(--muted)}
 .note{font-size:12.5px;color:var(--muted)}
 .tabs{position:fixed;left:0;right:0;bottom:0;background:var(--surface);border-top:1px solid var(--line);padding:6px 8px calc(6px + env(safe-area-inset-bottom,0px));z-index:5}
-.tabs div{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(4,1fr)}
+.tabs div{max-width:480px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
 .tab{display:flex;flex-direction:column;align-items:center;gap:2px;border:0;background:none;padding:6px 0;font-size:12px;color:var(--muted);font-weight:500;min-height:52px}
 .tab svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
 .tab.on{color:var(--accent);font-weight:700}
@@ -725,6 +725,7 @@ function unlock(){try{if(WL){WL.release();WL=null}}catch(e){}}
 
 /* ---------- 화면: 공통 ---------- */
 var ICON={
+ exit:'<svg viewBox="0 0 24 24"><path d="M12 3v9M6.3 6.8a8 8 0 1 0 11.4 0"/></svg>',
  today:'<svg viewBox="0 0 24 24"><rect x="3.5" y="5" width="17" height="15" rx="3"/><path d="M3.5 10h17M8 3v4M16 3v4"/></svg>',
  lib:'<svg viewBox="0 0 24 24"><path d="M3 9v6M6 6.5v11M18 6.5v11M21 9v6M6 12h12"/></svg>',
  stats:'<svg viewBox="0 0 24 24"><path d="M4 20V11M10 20V5M16 20v-6M21 20H3"/></svg>',
@@ -732,7 +733,7 @@ var ICON={
 };
 function tabbar(){
   var t=[['today','오늘'],['lib','운동'],['stats','기록'],['set','설정']];
-  return '<nav class="tabs"><div>'+t.map(function(x){return '<button class="tab'+(ui.tab===x[0]?' on':'')+'" data-a="tab" data-v="'+x[0]+'" aria-label="'+x[1]+'">'+ICON[x[0]]+x[1]+'</button>'}).join('')+'</div></nav>';
+  return '<nav class="tabs"><div>'+t.map(function(x){return '<button class="tab'+(ui.tab===x[0]?' on':'')+'" data-a="tab" data-v="'+x[0]+'" aria-label="'+x[1]+'">'+ICON[x[0]]+x[1]+'</button>'}).join('')+'<button class="tab" data-a="exit" aria-label="종료">'+ICON.exit+'종료</button></div></nav>';
 }
 function fmtDate(d){return (d.getMonth()+1)+'월 '+d.getDate()+'일 '+WDN[d.getDay()]+'요일'}
 function setLine(it,ex){return it.sets+'세트 × '+it.target+unit(ex)}
@@ -851,7 +852,6 @@ function todayView(){
   h+='<div class="sec"><h3>주간 루틴</h3><section class="card" style="padding-block:4px">'+S.plan.days.map(function(d){
     return '<div class="dayrow"><span class="d">'+WDN[d.wd]+'</span><div class="grow"><b>'+d.title+'</b><small>'+d.items.map(function(it){return EXM[it.id].name}).join(' · ')+'</small></div><button class="btn sm soft" data-a="start" data-v="'+d.wd+'">시작</button></div>';
   }).join('')+'</section></div>';
-  h+='<div class="sec"><button class="btn ghost" data-a="exit">종료하기</button><p class="note" style="text-align:center">종료하기를 누르면 백업 안내가 먼저 떠요.</p></div>';
   return h;
 }
 function nextDay(){
@@ -957,8 +957,9 @@ function syncCard(){
 }
 
 /* ---------- 버전 · 공지사항 ---------- */
-var APP_VERSION='1.6.0';
+var APP_VERSION='1.7.0';
 var RELEASES=[
+ {v:'1.7.0',d:'2026-11-25',t:'종료 탭 추가',n:['하단 설정 옆에 종료 버튼이 생겼어요. 누르면 백업하고 마칠지, 그냥 마칠지 고를 수 있어요.','홈 화면에서 폰의 뒤로 버튼을 눌러도 같은 종료 선택창이 떠요.']},
  {v:'1.6.0',d:'2026-11-25',t:'부위 복수 선택',n:['키우고 싶은 부위를 여러 개 고를 수 있어요. 이미 만든 루틴은 설정에서 질문 다시 하기를 하면 바뀌어요.']},
  {v:'1.5.0',d:'2026-11-25',t:'앱 잠금 추가',n:['설정에서 앱 잠금(PIN)을 켤 수 있어요. 기본은 꺼져 있어요.']},
  {v:'1.4.0',d:'2026-11-25',t:'사용 방법 추가',n:['설정에 사용 방법 안내가 생겼어요.']},
@@ -1090,11 +1091,12 @@ function bkHTML(){
     if(b.copy)h+='<textarea id="copytxt" readonly rows="5" aria-label="백업 내용">'+esc(b.copy.text)+'</textarea><button class="btn sm soft" data-a="copytxt" style="margin-bottom:10px">전체 복사</button>';
     return h+'<button class="btn" data-a="bkclose">확인</button></div></div>';
   }
+  if(ui.exiting){var hasL=realLogs().length>0;h+='<div class="eyebrow">종료</div><h2 id="bktitle" style="margin:2px 0 8px">종료할까요?</h2><p class="note" style="color:var(--ink);margin-bottom:6px">'+(!hasL?'아직 저장할 운동 기록이 없어요.':backupDirty()?(S.settings.lastBackup?'마지막 백업('+bkTime(S.settings.lastBackup)+') 이후 기록이 추가되거나 바뀌었어요.':'아직 백업한 적이 없어요.'):'마지막 백업 이후 바뀐 기록은 없어요.')+'</p>'+(hasL?'<p class="note" style="margin-bottom:14px">백업 파일(JSON)을 저장해 두면 브라우저 데이터를 지우거나 폰을 바꿔도 기록을 되살릴 수 있어요.</p>':'<div style="height:8px"></div>');return h+'<div class="col" style="display:flex;flex-direction:column;gap:8px">'+(hasL?'<button class="btn" data-a="bkdo">백업하고 마치기</button>':'')+'<button class="btn '+(hasL?'ghost':'')+'" data-a="byenow">'+(hasL?'백업 없이 마치기':'마치기')+'</button><button class="btn soft" data-a="bkcancel">취소</button></div></div></div>'}
   h+='<div class="eyebrow">백업 안내</div><h2 id="bktitle" style="margin:2px 0 8px">'+(ui.exiting?'종료하기 전에 백업할까요?':'나가기 전에 백업할까요?')+'</h2><p class="note" style="color:var(--ink);margin-bottom:6px">'+(S.settings.lastBackup?'마지막 백업('+bkTime(S.settings.lastBackup)+') 이후 기록이 추가되거나 바뀌었어요.':'아직 백업한 적이 없어요.')+'</p><p class="note" style="margin-bottom:14px">백업 파일(JSON)을 저장해 두면 브라우저 데이터를 지우거나 폰을 바꿔도 기록을 되살릴 수 있어요.</p>';
   return h+'<div class="col" style="display:flex;flex-direction:column;gap:8px"><button class="btn" data-a="bkdo">지금 백업 저장</button>'+(ui.exiting?'<button class="btn ghost" data-a="byenow">백업 없이 종료</button><button class="btn soft" data-a="bkcancel">취소</button>':'<button class="btn ghost" data-a="bklater">나중에</button>')+'</div></div></div>';
 }
 function byeHTML(){return ui.bye?'<div class="nbk" style="align-items:center;z-index:50;background:var(--bg)" role="dialog" aria-modal="true"><div style="text-align:center;padding:24px;max-width:340px;display:flex;flex-direction:column;gap:12px"><h2>수고하셨어요</h2><p class="note" style="color:var(--ink)">이제 앱을 닫아도 돼요. 폰의 홈 버튼이나 최근 앱 화면에서 닫아 주세요.</p><button class="btn ghost" data-a="byeback">앱으로 돌아가기</button></div></div>':''}
-function startExit(){if(backupDirty()){ui.exiting=true;ui.bk={};}else{ui.bye=true}renderLayer()}
+function startExit(){ui.exiting=true;ui.bk={};renderLayer()}
 function askBackup(){if(DEV.cur&&S.profile&&!ui.ob&&!ui.run&&!ui.notice&&!ui.bk&&!ui.bdismiss&&backupDirty()){ui.bk={};renderLayer()}}
 function backupText(){var t=S.settings.lastBackup;if(!t)return '아직 없음';return bkTime(t)+(S.settings.lastBackupName?' · '+S.settings.lastBackupName:'')}
 function needBackup(){var n=S.logs.filter(function(l){return !l.sample}).length;if(n<3||ui.bdismiss||SYNC.state==='on')return false;var t=S.settings.lastBackup;return !t||Date.now()-t>14*86400000}
