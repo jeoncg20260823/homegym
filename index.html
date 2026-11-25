@@ -957,8 +957,9 @@ function syncCard(){
 }
 
 /* ---------- 버전 · 공지사항 ---------- */
-var APP_VERSION='1.7.1';
+var APP_VERSION='1.7.2';
 var RELEASES=[
+ {v:'1.7.2',d:'2026-11-25',t:'돌아가기·나가기',n:['종료에서 마치기를 누르면 돌아가기 또는 나가기를 고를 수 있어요.']},
  {v:'1.7.1',d:'2026-11-25',t:'바로 종료',n:['종료를 고르면 앱이 바로 닫혀요. 닫히지 않는 환경에서는 종료 안내 화면이 나와요.']},
  {v:'1.7.0',d:'2026-11-25',t:'종료 탭 추가',n:['하단 설정 옆에 종료 버튼이 생겼어요. 누르면 백업하고 마칠지, 그냥 마칠지 고를 수 있어요.','홈 화면에서 폰의 뒤로 버튼을 눌러도 같은 종료 선택창이 떠요.']},
  {v:'1.6.0',d:'2026-11-25',t:'부위 복수 선택',n:['키우고 싶은 부위를 여러 개 고를 수 있어요. 이미 만든 루틴은 설정에서 질문 다시 하기를 하면 바뀌어요.']},
@@ -1096,12 +1097,12 @@ function bkHTML(){
   h+='<div class="eyebrow">백업 안내</div><h2 id="bktitle" style="margin:2px 0 8px">'+(ui.exiting?'종료하기 전에 백업할까요?':'나가기 전에 백업할까요?')+'</h2><p class="note" style="color:var(--ink);margin-bottom:6px">'+(S.settings.lastBackup?'마지막 백업('+bkTime(S.settings.lastBackup)+') 이후 기록이 추가되거나 바뀌었어요.':'아직 백업한 적이 없어요.')+'</p><p class="note" style="margin-bottom:14px">백업 파일(JSON)을 저장해 두면 브라우저 데이터를 지우거나 폰을 바꿔도 기록을 되살릴 수 있어요.</p>';
   return h+'<div class="col" style="display:flex;flex-direction:column;gap:8px"><button class="btn" data-a="bkdo">지금 백업 저장</button>'+(ui.exiting?'<button class="btn ghost" data-a="byenow">백업 없이 종료</button><button class="btn soft" data-a="bkcancel">취소</button>':'<button class="btn ghost" data-a="bklater">나중에</button>')+'</div></div></div>';
 }
-function byeHTML(){return ui.bye?'<div class="nbk" style="align-items:center;z-index:50;background:var(--bg)" role="dialog" aria-modal="true"><div style="text-align:center;padding:24px;max-width:340px;display:flex;flex-direction:column;gap:12px"><h2>수고하셨어요</h2><p class="note" style="color:var(--ink)">이제 앱을 닫아도 돼요. 폰의 홈 버튼이나 최근 앱 화면에서 닫아 주세요.</p><button class="btn ghost" data-a="byeback">앱으로 돌아가기</button></div></div>':''}
+function byeHTML(){return ui.bye?'<div class="nbk" style="align-items:center;z-index:50;background:var(--bg)" role="dialog" aria-modal="true"><div style="text-align:center;padding:24px;max-width:340px;width:100%;display:flex;flex-direction:column;gap:12px"><h2>수고하셨어요</h2><p class="note" style="color:var(--ink)">앱으로 돌아갈까요, 나갈까요?</p><button class="btn" data-a="byeexit">나가기</button><button class="btn ghost" data-a="byeback">돌아가기</button>'+(ui.byeNote?'<p class="note">이 화면에서는 앱이 스스로 닫히지 않아요. 폰의 홈 버튼이나 최근 앱 화면에서 닫아 주세요.</p>':'')+'</div></div>':''}
 function doExit(){
-  ui.bk=null;ui.exiting=false;ui.leaving=true;renderLayer();
+  ui.leaving=true;ui.byeNote=false;
   try{window.close()}catch(e){}
   try{history.back()}catch(e){}
-  setTimeout(function(){if(ui.leaving){ui.leaving=false;ui.bye=true;renderLayer()}},700);
+  setTimeout(function(){if(ui.leaving){ui.leaving=false;ui.byeNote=true;renderLayer()}},700);
 }
 function startExit(){ui.exiting=true;ui.bk={};renderLayer()}
 function askBackup(){if(DEV.cur&&S.profile&&!ui.ob&&!ui.run&&!ui.notice&&!ui.bk&&!ui.bdismiss&&backupDirty()){ui.bk={};renderLayer()}}
@@ -1320,7 +1321,7 @@ function act(a,v,k){
   case 'noticeok':writeSeen(APP_VERSION);ui.notice=null;ui.noticeAll=false;renderLayer();break;
   case 'bkdo':exportJSON();if(!realLogs().length)ui.bk=null;renderLayer();break;
   case 'bklater':ui.bk=null;ui.bdismiss=true;renderLayer();break;
-  case 'bkclose':if(ui.exiting){doExit();break}ui.bk=null;renderLayer();renderMain();break;
+  case 'bkclose':if(ui.exiting){ui.bk=null;ui.exiting=false;ui.bye=true;ui.byeNote=false;renderLayer();break}ui.bk=null;renderLayer();renderMain();break;
   case 'exit':startExit();break;
   case 'lockgo':lockTry();break;
   case 'lockforgot':ui.lockUi={forgot:true};renderMain();break;
@@ -1329,9 +1330,10 @@ function act(a,v,k){
   case 'lockset':ui.lockSet={mode:v};renderMain();break;
   case 'lockcancel':ui.lockSet=null;renderMain();break;
   case 'locksave':lockSave();break;
-  case 'byenow':doExit();break;
+  case 'byenow':ui.bk=null;ui.exiting=false;ui.bye=true;ui.byeNote=false;renderLayer();break;
+  case 'byeexit':doExit();break;
   case 'bkcancel':ui.bk=null;ui.exiting=false;renderLayer();break;
-  case 'byeback':ui.bye=false;ui.leaving=false;pushGuard();renderLayer();break;
+  case 'byeback':ui.bye=false;ui.leaving=false;ui.byeNote=false;pushGuard();renderLayer();break;
   case 'noticeall':ui.notice=RELEASES.slice(0,5);ui.noticeAll=true;renderLayer();break;
   case 'syncnow':pushSync();break;
   case 'exjson':exportJSON();break;
@@ -1509,7 +1511,7 @@ function clickA(a){var el=document.querySelector('[data-a="'+a+'"]');if(el){el.c
 function backHandled(){
   if(ui.leaving)return 'exit';
   if(ui.locked&&lockOn()){if(ui.lockUi&&ui.lockUi.forgot){clickA('lockback');return true}return false}
-  if(ui.bye){return 'exit'}
+  if(ui.bye){ui.bye=false;ui.byeNote=false;renderLayer();return true}
   if(ui.notice){return true}
   if(ui.bk){if(ui.bk.result)clickA('bkclose');else if(ui.exiting)clickA('bkcancel');else clickA('bklater');return true}
   if(ui.run){var r=ui.run;if(r.done){clickA('runClose')}else if(r.confirm){clickA('qcancel')}else{clickA('quit')}return true}
